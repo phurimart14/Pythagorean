@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เกมการเรียนรู้ทฤษฎีบทพีทาโกรัส - Teaching Demo</title>
+    <!-- นำเข้า Tailwind CSS สำหรับตกแต่ง UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- นำเข้าฟอนต์ภาษาไทย Prompt และ Sarabun เพื่อความสวยงามและอ่านง่าย -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc;
+            overflow: hidden; /* ป้องกันการเลื่อนหน้าจอขณะลากชิ้นส่วนบนมือถือ/แท็บเล็ต */
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .font-mono-math {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* เอฟเฟกต์เรืองแสงสำหรับปุ่มและกล่องข้อความ */
+        .glow-blue {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+        .glow-orange {
+            box-shadow: 0 0 15px rgba(251, 146, 60, 0.3);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+        }
+
+        /* แอนิเมชันเด้งเบาๆ เมื่อชนะ */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* ซ่อนลูกศรขึ้นลงของ input number เพื่อความสวยงาม */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* Custom Scrollbar สำหรับหน้าจอเล็ก */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-screen bg-slate-950 text-slate-100">
+
+    <!-- แถบควบคุมด้านบน (Header & Controls) -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-3 py-2.5 sm:px-6 sm:py-3 flex flex-wrap items-center justify-between gap-2 z-20 shadow-lg">
+        <!-- ชื่อสื่อการสอน -->
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-sky-500 via-indigo-500 to-orange-500 flex items-center justify-center shadow-md">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 20h16L4 4v16z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-orange-400 leading-tight">
+                    พิสูจน์ทฤษฎีบทพีทาโกรัส
+                </h1>
+                <p class="text-[11px] sm:text-xs text-slate-400">ลากสี่เหลี่ยม 1×1 หน่วย ไปประกอบบนด้านตรงข้ามมุมฉาก (c²)</p>
+            </div>
+        </div>
+
+        <!-- ตัวเลือกด่านมาตรฐาน (Pythagorean Triples) และปุ่มกำหนดค่าเอง -->
+        <div class="flex flex-wrap items-center bg-slate-800/80 p-1 rounded-xl border border-slate-700/70 gap-0.5">
+            <button onclick="setLevel(0)" id="btn-lvl-0" class="lvl-btn px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-indigo-600 text-white shadow">
+                3-4-5
+            </button>
+            <button onclick="setLevel(1)" id="btn-lvl-1" class="lvl-btn px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white">
+                5-12-13
+            </button>
+            <button onclick="setLevel(2)" id="btn-lvl-2" class="lvl-btn px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white">
+                6-8-10
+            </button>
+            <button onclick="setLevel(3)" id="btn-lvl-3" class="lvl-btn px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-300 hover:text-white">
+                8-15-17
+            </button>
+            <div class="w-px h-5 bg-slate-700 mx-0.5"></div>
+            <button onclick="toggleCustomPanel()" id="btn-lvl-custom" class="lvl-btn flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-amber-300 hover:text-amber-200 hover:bg-slate-700/60">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                <span>กำหนดเอง</span>
+            </button>
+        </div>
+
+        <!-- ปุ่มเครื่องมือเสริม (Auto-fill, Grid, Sound, Reset) -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <!-- ปุ่มสาธิตอัตโนมัติ -->
+            <button id="btn-autofill" onclick="toggleAutoFill()" class="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-semibold transition-all shadow-md shadow-emerald-950/50" title="จัดเรียงอัตโนมัติเพื่อสาธิต">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span id="autofill-text">จัดเรียงอัตโนมัติ</span>
+            </button>
+
+            <!-- ปุ่มเปิด/ปิดเส้นตาราง -->
+            <button id="btn-grid" onclick="toggleGrid()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition-all" title="แสดง/ซ่อน เส้นตาราง">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                </svg>
+            </button>
+
+            <!-- ปุ่มเปิด/ปิดเสียง -->
+            <button id="btn-sound" onclick="toggleSound()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition-all" title="เปิด/ปิด เสียงเอฟเฟกต์">
+                <svg id="icon-sound-on" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+                </svg>
+                <svg id="icon-sound-off" class="w-4 h-4 sm:w-5 sm:h-5 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
+                </svg>
+            </button>
+
+            <!-- ปุ่มรีเซ็ต -->
+            <button onclick="resetLevel()" class="flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-800 text-slate-300 border border-slate-700 text-xs sm:text-sm font-medium transition-all" title="เริ่มใหม่">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span class="hidden sm:inline">รีเซ็ต</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- พื้นที่หลักสำหรับแสดง Canvas Interactive -->
+    <main id="canvas-container" class="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+        <canvas id="pythagorasCanvas" class="block w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+        <!-- แผงควบคุมสำหรับกรอกตัวเลขเอง (Custom Input Panel) -->
+        <div id="custom-panel" class="hidden absolute top-3 right-3 sm:top-4 sm:right-4 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-4 w-[calc(100%-1.5rem)] max-w-sm shadow-2xl z-20 animate-pop-in">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    <h3 class="text-sm font-bold text-white">กำหนดความยาวด้านเอง</h3>
+                </div>
+                <button onclick="toggleCustomPanel(false)" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors" title="ปิดหน้าต่าง">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- เลือกรูปแบบการกรอกค่า 2 ด้าน -->
+            <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 mb-3 text-xs">
+                <button id="mode-ab" onclick="setCustomMode('ab')" class="py-1.5 px-2 rounded-lg font-medium bg-indigo-600 text-white transition-all">
+                    กรอก a, b (หา c)
+                </button>
+                <button id="mode-ac" onclick="setCustomMode('ac')" class="py-1.5 px-2 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+                    กรอก a, c (หา b)
+                </button>
+            </div>
+
+            <!-- ช่องกรอกตัวเลขทั้ง 3 ด้าน (2 ช่องกรอกได้ + 1 ช่องคำนวณอัตโนมัติ) -->
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <!-- ด้าน a -->
+                <div class="bg-sky-950/40 border border-sky-500/30 rounded-xl p-2 text-center">
+                    <label for="input-a" class="block text-[11px] font-medium text-sky-300 mb-1">ด้าน a</label>
+                    <input type="number" id="input-a" min="1" max="15" value="3" oninput="onCustomInputChange()"
+                        class="w-full bg-slate-900 border border-sky-500/50 rounded-lg py-1 px-1.5 text-center font-mono-math font-bold text-sky-400 text-base focus:outline-none focus:ring-2 focus:ring-sky-400">
+                </div>
+
+                <!-- ด้าน b -->
+                <div id="box-b" class="bg-orange-950/40 border border-orange-500/30 rounded-xl p-2 text-center">
+                    <label for="input-b" class="block text-[11px] font-medium text-orange-300 mb-1">ด้าน b</label>
+                    <input type="number" id="input-b" min="1" max="15" value="4" oninput="onCustomInputChange()"
+                        class="w-full bg-slate-900 border border-orange-500/50 rounded-lg py-1 px-1.5 text-center font-mono-math font-bold text-orange-400 text-base focus:outline-none focus:ring-2 focus:ring-orange-400">
+                </div>
+
+                <!-- ด้าน c -->
+                <div id="box-c" class="bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-2 text-center">
+                    <label for="input-c" class="block text-[11px] font-medium text-emerald-300 mb-1">ด้าน c (ฉาก)</label>
+                    <input type="number" id="input-c" min="2" max="20" value="5" readonly oninput="onCustomInputChange()"
+                        class="w-full bg-slate-950/80 border border-emerald-500/30 rounded-lg py-1 px-1.5 text-center font-mono-math font-bold text-emerald-400 text-base focus:outline-none cursor-not-allowed">
+                </div>
+            </div>
+
+            <!-- กล่องแสดงสูตรคำนวณเรียลไทม์ -->
+            <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5 mb-3 text-center">
+                <div class="text-[11px] text-slate-400 mb-0.5">การคำนวณด้านที่ 3 อัตโนมัติ</div>
+                <div id="custom-formula-display" class="font-mono-math text-sm font-bold text-emerald-400">
+                    c = √(3² + 4²) = √25 = 5
+                </div>
+            </div>
+
+            <!-- ข้อความแจ้งเตือน / คำแนะนำ (Validation Message) -->
+            <div id="custom-validation-msg" class="hidden text-xs rounded-xl p-2.5 mb-3 leading-relaxed"></div>
+
+            <!-- ปุ่มลัดชุดเลขลงตัวแนะนำ (Quick Triples) -->
+            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-3">
+                <span>ชุดเลขลงตัวแนะนำ:</span>
+                <div class="flex gap-1.5 font-mono-math">
+                    <button type="button" onclick="fillQuickTriple(3, 4, 5)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">3,4,5</button>
+                    <button type="button" onclick="fillQuickTriple(5, 12, 13)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">5,12,13</button>
+                    <button type="button" onclick="fillQuickTriple(9, 12, 15)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">9,12,15</button>
+                </div>
+            </div>
+
+            <!-- ปุ่มสร้างรูปสามเหลี่ยม -->
+            <button id="btn-apply-custom" onclick="applyCustomTriangle()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 active:scale-[0.99] text-white font-semibold text-sm shadow-lg shadow-indigo-950/60 transition-all flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>สร้างรูปสามเหลี่ยม</span>
+            </button>
+        </div>
+
+        <!-- ป้ายบอกคำแนะนำมุมบนซ้าย (ซ่อนอัตโนมัติเมื่อเริ่มลาก) -->
+        <div id="hint-badge" class="pointer-events-none absolute top-3 left-3 sm:top-4 sm:left-4 bg-slate-900/85 backdrop-blur-md border border-slate-700/80 px-3.5 py-2 rounded-xl text-xs sm:text-sm text-slate-300 flex items-center gap-2 shadow-lg transition-opacity duration-500">
+            <span class="flex h-2.5 w-2.5 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500"></span>
+            </span>
+            <span>คลิกลากช่องสีฟ้า (<b class="text-sky-400">a²</b>) หรือสีส้ม (<b class="text-orange-400">b²</b>) ไปวางในกรอบ <b class="text-emerald-400">c²</b></span>
+        </div>
+
+        <!-- หน้าต่างแสดงความยินดีเมื่อพิสูจน์สำเร็จ (Victory Modal) -->
+        <div id="victory-overlay" class="hidden absolute inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-30">
+            <div class="animate-pop-in bg-slate-900 border-2 border-emerald-500/70 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl glow-emerald">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">พิสูจน์สำเร็จ!</h2>
+                <p class="text-slate-300 text-sm sm:text-base mb-5">
+                    พื้นที่ของสี่เหลี่ยมจัตุรัสบนด้านประกอบมุมฉากทั้งสองรวมกัน เท่ากับพื้นที่บนด้านตรงข้ามมุมฉากพอดี!
+                </p>
+
+                <!-- กล่องสรุปสมการ -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 mb-6 font-mono-math">
+                    <div class="text-xs text-slate-400 mb-1 font-sans">สรุปสมการทฤษฎีบทพีทาโกรัส</div>
+                    <div id="victory-equation-formula" class="text-lg sm:text-xl font-bold text-slate-200 mb-1">
+                        3² + 4² = 5²
+                    </div>
+                    <div id="victory-equation-numbers" class="text-xl sm:text-2xl font-extrabold">
+                        <span class="text-sky-400">9</span> + <span class="text-orange-400">16</span> = <span class="text-emerald-400">25</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-center">
+                    <button onclick="closeVictoryModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm transition-all">
+                        ดูผลงานบนกระดาน
+                    </button>
+                    <button onclick="nextLevel()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-950 transition-all">
+                        ด่านถัดไป →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- แถบแสดงสมการแบบ Real-time ด้านล่าง (Live Equation Bar) -->
+    <footer class="bg-slate-900/95 border-t border-slate-800 px-3 py-2.5 sm:px-6 sm:py-3 z-20">
+        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+            
+            <!-- สมการตัวเลข Real-time -->
+            <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 font-mono-math text-sm sm:text-lg">
+                <!-- ด้าน a -->
+                <div class="flex items-center gap-1.5 bg-sky-950/60 border border-sky-500/30 px-3 py-1 rounded-xl">
+                    <span class="w-3 h-3 rounded-sm bg-sky-400 inline-block"></span>
+                    <span class="text-sky-300 font-sans text-xs sm:text-sm">ด้าน a:</span>
+                    <span id="eq-a-val" class="font-bold text-sky-400">3² = 9</span>
+                    <span id="eq-a-rem" class="text-xs text-sky-300/70 font-sans">(เหลือ 9)</span>
+                </div>
+
+                <span class="text-slate-500 font-bold">+</span>
+
+                <!-- ด้าน b -->
+                <div class="flex items-center gap-1.5 bg-orange-950/60 border border-orange-500/30 px-3 py-1 rounded-xl">
+                    <span class="w-3 h-3 rounded-sm bg-orange-400 inline-block"></span>
+                    <span class="text-orange-300 font-sans text-xs sm:text-sm">ด้าน b:</span>
+                    <span id="eq-b-val" class="font-bold text-orange-400">4² = 16</span>
+                    <span id="eq-b-rem" class="text-xs text-orange-300/70 font-sans">(เหลือ 16)</span>
+                </div>
+
+                <span class="text-slate-500 font-bold">=</span>
+
+                <!-- ด้าน c (เป้าหมาย) -->
+                <div class="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/40 px-3.5 py-1 rounded-xl glow-emerald">
+                    <span class="w-3 h-3 rounded-sm bg-emerald-400 inline-block"></span>
+                    <span class="text-emerald-300 font-sans text-xs sm:text-sm">ด้าน c²:</span>
+                    <span id="eq-c-progress" class="font-extrabold text-emerald-400">0 / 25</span>
+                    <span class="text-xs text-emerald-300/80 font-sans">ช่อง</span>
+                </div>
+            </div>
+
+            <!-- แถบความคืบหน้า (Progress Bar) -->
+            <div class="w-full sm:w-48 flex items-center gap-2.5">
+                <div class="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-sky-400 via-orange-400 to-emerald-400 transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <span id="progress-percent" class="text-xs font-mono-math font-bold text-slate-300 w-10 text-right">0%</span>
+            </div>
+
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * ============================================================================
+         * ระบบจัดการเสียงสังเคราะห์ (Web Audio API) - ไม่ต้องพึ่งพาไฟล์เสียงภายนอก
+         * ============================================================================
+         */
+        class SoundManager {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // เสียงหยิบชิ้นส่วน (Pop เบาๆ)
+            playPickup() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(520, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            // เสียงวางลงล็อก (Snap Click ที่ไพเราะ)
+            playSnap(pitchOffset = 0) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                const baseFreq = 580 + (pitchOffset % 12) * 25;
+                osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, this.ctx.currentTime + 0.11);
+
+                gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.11);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.11);
+            }
+
+            // เสียงเด้งกลับ (เมื่อวางนอกกรอบเป้าหมาย)
+            playReturn() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(180, this.ctx.currentTime + 0.12);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+
+            // เสียงแฟนแฟร์เมื่อพิสูจน์สำเร็จ (Victory Chord)
+            playWin() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    const startTime = this.ctx.currentTime + idx * 0.09;
+                    osc.frequency.setValueAtTime(freq, startTime);
+
+                    gain.gain.setValueAtTime(0.18, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.45);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.45);
+                });
+            }
+        }
+
+        const sound = new SoundManager();
+
+        /**
+         * ============================================================================
+         * ข้อมูลด่านและสถานะของเกม (Game State & Configuration)
+         * ============================================================================
+         */
+        const LEVELS = [
+            { a: 3, b: 4, c: 5, name: "3 - 4 - 5" },
+            { a: 5, b: 12, c: 13, name: "5 - 12 - 13" },
+            { a: 6, b: 8, c: 10, name: "6 - 8 - 10" },
+            { a: 8, b: 15, c: 17, name: "8 - 15 - 17" }
+        ];
+
+        // เก็บค่าขนาดด้านที่กำลังใช้งานจริง (รองรับทั้งด่านมาตรฐานและค่าที่ผู้เล่นกรอกเอง)
+        let activeTriangle = { a: 3, b: 4, c: 5, isCustom: false };
+        let currentLevelIdx = 0;
+        let customInputMode = 'ab'; // 'ab' = กรอก a,b หา c | 'ac' = กรอก a,c หา b
+        let showGrid = true;
+        let isAutoFilling = false;
+        let autoFillTimer = null;
+        let hasWon = false;
+
+        // ตัวแปรสำหรับ Canvas และการเรนเดอร์
+        const canvas = document.getElementById('pythagorasCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        let width = 0;
+        let height = 0;
+        let dpr = window.devicePixelRatio || 1;
+
+        // ข้อมูลเรขาคณิตที่คำนวณตามขนาดหน้าจอ
+        let geom = {
+            unitSize: 30,
+            A: { x: 0, y: 0 }, // มุมฉาก
+            B: { x: 0, y: 0 }, // มุมบน
+            C: { x: 0, y: 0 }, // มุมขวา
+            angleC: 0,
+            cosC: 1,
+            sinC: 0
+        };
+
+        // อาร์เรย์เก็บชิ้นส่วนสี่เหลี่ยม 1x1 หน่วย และช่องเป้าหมายบน c²
+        let tiles = [];
+        let targetSlots = [];
+        let particles = [];
+
+        // สถานะการลากชิ้นส่วน (Drag & Drop)
+        let draggedTile = null;
+        let dragOffset = { x: 0, y: 0 };
+        let hoveredSlot = null;
+        let pointerPos = { x: 0, y: 0 };
+
+        /**
+         * คำนวณพิกัดเรขาคณิตทั้งหมดให้พอดีและอยู่กึ่งกลางหน้าจอ
+         */
+        function calculateGeometry() {
+            const { a, b, c } = activeTriangle;
+
+            // คำนวณ Bounding Box ในหน่วย Grid (1 หน่วย) เพื่อจัดกึ่งกลางหน้าจออัตโนมัติ
+            // มุม A อยู่ที่ (0, 0) ในพิกัดคณิตศาสตร์ (y ชี้ขึ้น)
+            // 1. สี่เหลี่ยม a² (ซ้าย): x ∈ [-a, 0], y ∈ [0, a]
+            // 2. สี่เหลี่ยม b² (ล่าง): x ∈ [0, b], y ∈ [-b, 0]
+            // 3. สี่เหลี่ยม c² (ขวาบน):
+            //    จุด B = (0, a), จุด C = (b, 0)
+            //    เวกเตอร์ BC = (b, -a)
+            //    เวกเตอร์ตั้งฉากออกไปด้านนอก (ขวาบน) = (a, b)
+            //    จุดยอดอีก 2 จุดของ c² คือ B + (a, b) = (a, a + b) และ C + (a, b) = (a + b, b)
+            const minX_units = -a;
+            const maxX_units = a + b;
+            const minY_units = -b;
+            const maxY_units = a + b;
+
+            const totalWidthUnits = maxX_units - minX_units;  // 2a + b
+            const totalHeightUnits = maxY_units - minY_units; // a + 2b
+
+            // เผื่อขอบรอบด้าน (Padding) ให้ดูโปร่งสบายตา
+            const padding = Math.min(width, height) * 0.08 + 20;
+            const availW = Math.max(100, width - padding * 2);
+            const availH = Math.max(100, height - padding * 2);
+
+            const u = Math.min(availW / totalWidthUnits, availH / totalHeightUnits);
+            geom.unitSize = u;
+
+            // หาจุดกึ่งกลางของ Bounding Box เพื่อวางให้อยู่กลาง Canvas พอดี
+            const shapePixelW = totalWidthUnits * u;
+            const shapePixelH = totalHeightUnits * u;
+
+            const offsetX = (width - shapePixelW) / 2;
+            const offsetY = (height - shapePixelH) / 2;
+
+            // แปลงพิกัดคณิตศาสตร์ (0,0) เป็นพิกัดหน้าจอ Canvas (y ชี้ลง)
+            // ขอบซ้ายสุดคือ x = -a -> offsetX
+            // ขอบบนสุดคือ y = a + b -> offsetY
+            geom.A = {
+                x: offsetX + a * u,
+                y: offsetY + (a + b) * u
+            };
+            geom.B = {
+                x: geom.A.x,
+                y: geom.A.y - a * u
+            };
+            geom.C = {
+                x: geom.A.x + b * u,
+                y: geom.A.y
+            };
+
+            // มุมเอียงของด้าน c (จาก B ไป C)
+            const dx = geom.C.x - geom.B.x; // b * u
+            const dy = geom.C.y - geom.B.y; // a * u
+            geom.angleC = Math.atan2(dy, dx);
+            geom.cosC = Math.cos(geom.angleC);
+            geom.sinC = Math.sin(geom.angleC);
+
+            updatePositionsFromGeometry();
+        }
+
+        /**
+         * สร้างข้อมูลเริ่มต้นของชิ้นส่วนสี่เหลี่ยม 1x1 หน่วย และช่องเป้าหมาย
+         */
+        function initLevelData() {
+            stopAutoFill();
+            hasWon = false;
+            document.getElementById('victory-overlay').classList.add('hidden');
+            document.getElementById('hint-badge').style.opacity = '1';
+
+            const { a, b, c } = activeTriangle;
+            tiles = [];
+            targetSlots = [];
+            particles = [];
+            draggedTile = null;
+            hoveredSlot = null;
+
+            // 1. สร้างช่องเป้าหมายบนด้าน c² จำนวน c * c ช่อง
+            let slotIndex = 0;
+            for (let row = 0; row < c; row++) {
+                for (let col = 0; col < c; col++) {
+                    targetSlots.push({
+                        index: slotIndex++,
+                        gridCol: col,
+                        gridRow: row,
+                        x: 0,
+                        y: 0,
+                        angle: 0,
+                        occupiedByTileId: -1
+                    });
+                }
+            }
+
+            // 2. สร้างชิ้นส่วนสี่เหลี่ยม 1x1 หน่วยของด้าน a² (สีฟ้า)
+            let tileId = 0;
+            for (let row = 0; row < a; row++) {
+                for (let col = 0; col < a; col++) {
+                    tiles.push({
+                        id: tileId++,
+                        type: 'a',
+                        gridCol: col,
+                        gridRow: row,
+                        homeX: 0,
+                        homeY: 0,
+                        x: 0,
+                        y: 0,
+                        angle: 0,
+                        placedSlotIndex: -1,
+                        isAnimating: false,
+                        animStart: { x: 0, y: 0, angle: 0 },
+                        animEnd: { x: 0, y: 0, angle: 0 },
+                        animProgress: 0
+                    });
+                }
+            }
+
+            // 3. สร้างชิ้นส่วนสี่เหลี่ยม 1x1 หน่วยของด้าน b² (สีส้ม)
+            for (let row = 0; row < b; row++) {
+                for (let col = 0; col < b; col++) {
+                    tiles.push({
+                        id: tileId++,
+                        type: 'b',
+                        gridCol: col,
+                        gridRow: row,
+                        homeX: 0,
+                        homeY: 0,
+                        x: 0,
+                        y: 0,
+                        angle: 0,
+                        placedSlotIndex: -1,
+                        isAnimating: false,
+                        animStart: { x: 0, y: 0, angle: 0 },
+                        animEnd: { x: 0, y: 0, angle: 0 },
+                        animProgress: 0
+                    });
+                }
+            }
+
+            calculateGeometry();
+            updateEquationUI();
+        }
+
+        /**
+         * อัปเดตตำแหน่งพิกัดหน้าจอของช่องเป้าหมายและชิ้นส่วนทั้งหมดเมื่อหน้าจอเปลี่ยนขนาด
+         */
+        function updatePositionsFromGeometry() {
+            const u = geom.unitSize;
+            const { a, b, c } = activeTriangle;
+
+            // อัปเดตตำแหน่งช่องเป้าหมาย c²
+            // จุด B คือมุมล่างซ้ายของตาราง c² (ในระบบพิกัดเอียงตามด้าน BC)
+            // เวกเตอร์ไปทางขวาตามแนว BC (1 หน่วย) = (cosC * u, sinC * u)
+            // เวกเตอร์ขึ้นด้านบนตั้งฉากกับ BC (1 หน่วย) = (sinC * u, -cosC * u)
+            const ux_x = geom.cosC * u;
+            const ux_y = geom.sinC * u;
+            const uy_x = geom.sinC * u;
+            const uy_y = -geom.cosC * u;
+
+            targetSlots.forEach(slot => {
+                const colOffset = slot.gridCol + 0.5;
+                const rowOffset = slot.gridRow + 0.5;
+                slot.x = geom.B.x + colOffset * ux_x + rowOffset * uy_x;
+                slot.y = geom.B.y + colOffset * ux_y + rowOffset * uy_y;
+                slot.angle = geom.angleC;
+            });
+
+            // อัปเดตตำแหน่งบ้าน (Home) และตำแหน่งปัจจุบันของชิ้นส่วน a² และ b²
+            tiles.forEach(tile => {
+                if (tile.type === 'a') {
+                    // ตาราง a² อยู่ทางซ้ายของ AB: x เริ่มจาก A.x - a*u, y เริ่มจาก B.y
+                    tile.homeX = (geom.A.x - a * u) + (tile.gridCol + 0.5) * u;
+                    tile.homeY = geom.B.y + (tile.gridRow + 0.5) * u;
+                } else {
+                    // ตาราง b² อยู่ด้านล่างของ AC: x เริ่มจาก A.x, y เริ่มจาก A.y
+                    tile.homeX = geom.A.x + (tile.gridCol + 0.5) * u;
+                    tile.homeY = geom.A.y + (tile.gridRow + 0.5) * u;
+                }
+
+                if (tile === draggedTile) {
+                    // กำลังถูกลากอยู่ ไม่ต้องรีเซ็ตตำแหน่ง
+                    return;
+                }
+
+                if (tile.placedSlotIndex !== -1) {
+                    const slot = targetSlots[tile.placedSlotIndex];
+                    tile.x = slot.x;
+                    tile.y = slot.y;
+                    tile.angle = slot.angle;
+                    tile.isAnimating = false;
+                } else {
+                    tile.x = tile.homeX;
+                    tile.y = tile.homeY;
+                    tile.angle = 0;
+                    tile.isAnimating = false;
+                }
+            });
+        }
+
+        /**
+         * ============================================================================
+         * ระบบการลากและวาง (Drag & Drop + Touch Support + Snap-to-Grid)
+         * ============================================================================
+         */
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        // ตรวจสอบว่าจุด (px, py) อยู่ภายในสี่เหลี่ยมจัตุรัสที่หมุนด้วยมุม angle หรือไม่
+        function isPointInRotatedSquare(px, py, cx, cy, size, angle) {
+            const dx = px - cx;
+            const dy = py - cy;
+            const cos = Math.cos(-angle);
+            const sin = Math.sin(-angle);
+            const localX = dx * cos - dy * sin;
+            const localY = dx * sin + dy * cos;
+            const half = size * 0.52; // เพิ่ม Hitbox เล็กน้อย (52%) เพื่อให้ใช้นิ้วจิ้มง่ายขึ้นบนจอสัมผัส
+            return Math.abs(localX) <= half && Math.abs(localY) <= half;
+        }
+
+        function handlePointerDown(e) {
+            if (isAutoFilling) return;
+            const pos = getPointerPos(e);
+            pointerPos = pos;
+
+            // ค้นหาชิ้นส่วนที่อยู่ใต้เคอร์เซอร์ (วนจากบนลงล่าง)
+            for (let i = tiles.length - 1; i >= 0; i--) {
+                const tile = tiles[i];
+                if (isPointInRotatedSquare(pos.x, pos.y, tile.x, tile.y, geom.unitSize, tile.angle)) {
+                    // ซ่อนป้ายคำแนะนำเมื่อผู้เล่นเริ่มลากครั้งแรก
+                    document.getElementById('hint-badge').style.opacity = '0';
+
+                    draggedTile = tile;
+                    dragOffset.x = pos.x - tile.x;
+                    dragOffset.y = pos.y - tile.y;
+                    tile.isAnimating = false;
+
+                    // หากชิ้นส่วนนี้เคยอยู่ในช่องเป้าหมาย c² ให้ปลดล็อกช่องเดิมออกก่อน
+                    if (tile.placedSlotIndex !== -1) {
+                        targetSlots[tile.placedSlotIndex].occupiedByTileId = -1;
+                        tile.placedSlotIndex = -1;
+                        updateEquationUI();
+                    }
+
+                    // ย้ายชิ้นส่วนที่ถูกลากมาไว้บนสุด (วาดทีหลังสุด)
+                    tiles.splice(i, 1);
+                    tiles.push(tile);
+
+                    sound.playPickup();
+                    canvas.style.cursor = 'grabbing';
+                    break;
+                }
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!draggedTile) return;
+            if (e.cancelable) e.preventDefault();
+
+            const pos = getPointerPos(e);
+            pointerPos = pos;
+
+            draggedTile.x = pos.x - dragOffset.x;
+            draggedTile.y = pos.y - dragOffset.y;
+
+            // ค้นหาช่องเป้าหมาย c² ที่ว่างและอยู่ใกล้ที่สุด (Snap-to-Grid Preview)
+            hoveredSlot = findNearestAvailableSlot(draggedTile.x, draggedTile.y);
+
+            // ค่อยๆ ปรับมุมเอียงของชิ้นส่วนให้เข้ากับกรอบ c² เมื่อลากเข้าใกล้พื้นที่เป้าหมาย
+            if (hoveredSlot) {
+                draggedTile.angle += (hoveredSlot.angle - draggedTile.angle) * 0.25;
+            } else {
+                draggedTile.angle += (0 - draggedTile.angle) * 0.25;
+            }
+        }
+
+        function handlePointerUp(e) {
+            if (!draggedTile) return;
+            canvas.style.cursor = 'grab';
+
+            const targetSlot = findNearestAvailableSlot(draggedTile.x, draggedTile.y);
+
+            if (targetSlot) {
+                // วางลงในช่องเป้าหมายสำเร็จ! (Snap-to-Grid)
+                targetSlot.occupiedByTileId = draggedTile.id;
+                draggedTile.placedSlotIndex = targetSlot.index;
+
+                // สั่งเล่นแอนิเมชันดูดเข้าช่องอย่างนุ่มนวล
+                startTileAnimation(draggedTile, targetSlot.x, targetSlot.y, targetSlot.angle);
+
+                const placedCount = targetSlots.filter(s => s.occupiedByTileId !== -1).length;
+                sound.playSnap(placedCount);
+                spawnSnapParticles(targetSlot.x, targetSlot.y, draggedTile.type === 'a' ? '#38bdf8' : '#fb923c');
+            } else {
+                // วางนอกกรอบ -> ส่งกลับไปยังตำแหน่งเดิม (Home)
+                draggedTile.placedSlotIndex = -1;
+                startTileAnimation(draggedTile, draggedTile.homeX, draggedTile.homeY, 0);
+                sound.playReturn();
+            }
+
+            draggedTile = null;
+            hoveredSlot = null;
+            updateEquationUI();
+            checkVictory();
+        }
+
+        /**
+         * ค้นหาช่องเป้าหมายที่ว่างอยู่และใกล้จุด (x, y) ที่สุดภายในรัศมีที่กำหนด
+         */
+        function findNearestAvailableSlot(x, y) {
+            const snapThreshold = geom.unitSize * 0.85; // ระยะดูดเข้าล็อก (85% ของขนาดช่อง)
+            let bestSlot = null;
+            let minDist = snapThreshold;
+
+            for (let i = 0; i < targetSlots.length; i++) {
+                const slot = targetSlots[i];
+                if (slot.occupiedByTileId !== -1) continue; // ข้ามช่องที่มีชิ้นส่วนวางอยู่แล้ว
+
+                const dist = Math.hypot(x - slot.x, y - slot.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestSlot = slot;
+                }
+            }
+            return bestSlot;
+        }
+
+        function startTileAnimation(tile, endX, endY, endAngle) {
+            tile.isAnimating = true;
+            tile.animStart = { x: tile.x, y: tile.y, angle: tile.angle };
+            tile.animEnd = { x: endX, y: endY, angle: endAngle };
+            tile.animProgress = 0;
+        }
+
+        /**
+         * ============================================================================
+         * โหมดจัดเรียงอัตโนมัติ (Auto-Fill Animation สำหรับสาธิตการสอน)
+         * ============================================================================
+         */
+        function toggleAutoFill() {
+            if (isAutoFilling) {
+                stopAutoFill();
+                return;
+            }
+
+            // หากวางครบแล้ว ให้รีเซ็ตก่อนแล้วค่อยจัดเรียงใหม่ให้ดู
+            const unplacedTiles = tiles.filter(t => t.placedSlotIndex === -1);
+            if (unplacedTiles.length === 0) {
+                initLevelData();
+            }
+
+            isAutoFilling = true;
+            document.getElementById('hint-badge').style.opacity = '0';
+            const btnText = document.getElementById('autofill-text');
+            const btn = document.getElementById('btn-autofill');
+            btnText.textContent = 'กำลังสาธิต...';
+            btn.classList.replace('bg-emerald-600', 'bg-amber-600');
+            btn.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-500');
+
+            // ปรับความเร็วในการย้ายตามจำนวนช่องของด่าน (ด่านใหญ่ย้ายเร็วขึ้น)
+            const totalSlots = targetSlots.length;
+            const intervalMs = totalSlots > 100 ? 22 : (totalSlots > 50 ? 40 : 75);
+
+            autoFillTimer = setInterval(() => {
+                // หาชิ้นส่วนที่ยังไม่ถูกวาง (เรียงจาก a ก่อน แล้วตามด้วย b เพื่อความสวยงามในการสอน)
+                const nextTile = tiles.find(t => t.placedSlotIndex === -1);
+                // หาช่องว่างช่องถัดไปใน c²
+                const nextSlot = targetSlots.find(s => s.occupiedByTileId === -1);
+
+                if (nextTile && nextSlot) {
+                    // ย้ายชิ้นส่วนมาไว้ด้านบนสุดเพื่อไม่ให้ถูกบังขณะลอยข้าม
+                    const idx = tiles.indexOf(nextTile);
+                    if (idx > -1) {
+                        tiles.splice(idx, 1);
+                        tiles.push(nextTile);
+                    }
+
+                    nextSlot.occupiedByTileId = nextTile.id;
+                    nextTile.placedSlotIndex = nextSlot.index;
+                    startTileAnimation(nextTile, nextSlot.x, nextSlot.y, nextSlot.angle);
+
+                    const placedCount = targetSlots.filter(s => s.occupiedByTileId !== -1).length;
+                    if (totalSlots <= 100 || placedCount % 2 === 0) {
+                        sound.playSnap(placedCount);
+                    }
+                    spawnSnapParticles(nextSlot.x, nextSlot.y, nextTile.type === 'a' ? '#38bdf8' : '#fb923c', 4);
+
+                    updateEquationUI();
+                } else {
+                    stopAutoFill();
+                    checkVictory();
+                }
+            }, intervalMs);
+        }
+
+        function stopAutoFill() {
+            isAutoFilling = false;
+            if (autoFillTimer) {
+                clearInterval(autoFillTimer);
+                autoFillTimer = null;
+            }
+            const btnText = document.getElementById('autofill-text');
+            const btn = document.getElementById('btn-autofill');
+            btnText.textContent = 'จัดเรียงอัตโนมัติ';
+            btn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+            btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+        }
+
+        /**
+         * ============================================================================
+         * การอัปเดต UI สมการ Real-time และตรวจสอบการชนะ
+         * ============================================================================
+         */
+        function updateEquationUI() {
+            const { a, b, c } = activeTriangle;
+            const areaA = a * a;
+            const areaB = b * b;
+            const areaC = c * c;
+
+            const remainingA = tiles.filter(t => t.type === 'a' && t.placedSlotIndex === -1).length;
+            const remainingB = tiles.filter(t => t.type === 'b' && t.placedSlotIndex === -1).length;
+            const placedTotal = targetSlots.filter(s => s.occupiedByTileId !== -1).length;
+
+            document.getElementById('eq-a-val').textContent = `${a}² = ${areaA}`;
+            document.getElementById('eq-a-rem').textContent = `(เหลือ ${remainingA})`;
+
+            document.getElementById('eq-b-val').textContent = `${b}² = ${areaB}`;
+            document.getElementById('eq-b-rem').textContent = `(เหลือ ${remainingB})`;
+
+            document.getElementById('eq-c-progress').textContent = `${placedTotal} / ${areaC}`;
+
+            const percent = areaC > 0 ? Math.round((placedTotal / areaC) * 100) : 0;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-percent').textContent = `${percent}%`;
+        }
+
+        function checkVictory() {
+            if (hasWon) return;
+            const placedTotal = targetSlots.filter(s => s.occupiedByTileId !== -1).length;
+
+            if (placedTotal === targetSlots.length) {
+                hasWon = true;
+                sound.playWin();
+
+                const { a, b, c } = activeTriangle;
+                document.getElementById('victory-equation-formula').textContent = `${a}² + ${b}² = ${c}²`;
+                document.getElementById('victory-equation-numbers').innerHTML =
+                    `<span class="text-sky-400">${a * a}</span> + <span class="text-orange-400">${b * b}</span> = <span class="text-emerald-400">${c * c}</span>`;
+
+                setTimeout(() => {
+                    document.getElementById('victory-overlay').classList.remove('hidden');
+                }, 350);
+            }
+        }
+
+        function closeVictoryModal() {
+            document.getElementById('victory-overlay').classList.add('hidden');
+        }
+
+        /**
+         * ============================================================================
+         * ฟังก์ชันควบคุมปุ่มกดบนแถบเครื่องมือ และโหมดกรอกตัวเลขเอง (Custom Input Mode)
+         * ============================================================================
+         */
+        function updateNavActiveButton(activeId) {
+            document.querySelectorAll('.lvl-btn').forEach(btn => {
+                if (btn.id === activeId) {
+                    btn.classList.add('bg-indigo-600', 'text-white', 'shadow');
+                    btn.classList.remove('text-slate-300', 'hover:text-white', 'text-amber-300');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white', 'shadow');
+                    if (btn.id === 'btn-lvl-custom') {
+                        btn.classList.add('text-amber-300');
+                    } else {
+                        btn.classList.add('text-slate-300', 'hover:text-white');
+                    }
+                }
+            });
+        }
+
+        function setLevel(idx) {
+            currentLevelIdx = idx;
+            const preset = LEVELS[idx];
+            activeTriangle = { a: preset.a, b: preset.b, c: preset.c, isCustom: false };
+            updateNavActiveButton(`btn-lvl-${idx}`);
+            toggleCustomPanel(false);
+            initLevelData();
+        }
+
+        function nextLevel() {
+            const nextIdx = (currentLevelIdx + 1) % LEVELS.length;
+            setLevel(nextIdx);
+        }
+
+        function resetLevel() {
+            initLevelData();
+        }
+
+        function toggleCustomPanel(forceState) {
+            const panel = document.getElementById('custom-panel');
+            const isHidden = panel.classList.contains('hidden');
+            const shouldShow = forceState !== undefined ? forceState : isHidden;
+
+            if (shouldShow) {
+                panel.classList.remove('hidden');
+                // ซิงค์ค่าปัจจุบันลงในช่องกรอก
+                document.getElementById('input-a').value = activeTriangle.a;
+                document.getElementById('input-b').value = activeTriangle.b;
+                document.getElementById('input-c').value = activeTriangle.c;
+                onCustomInputChange();
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function setCustomMode(mode) {
+            customInputMode = mode;
+            const btnAB = document.getElementById('mode-ab');
+            const btnAC = document.getElementById('mode-ac');
+            const inputB = document.getElementById('input-b');
+            const inputC = document.getElementById('input-c');
+
+            if (mode === 'ab') {
+                btnAB.classList.add('bg-indigo-600', 'text-white');
+                btnAB.classList.remove('text-slate-400', 'hover:text-white');
+                btnAC.classList.remove('bg-indigo-600', 'text-white');
+                btnAC.classList.add('text-slate-400', 'hover:text-white');
+
+                inputB.readOnly = false;
+                inputB.classList.remove('bg-slate-950/80', 'cursor-not-allowed', 'border-orange-500/30');
+                inputB.classList.add('bg-slate-900', 'border-orange-500/50');
+
+                inputC.readOnly = true;
+                inputC.classList.add('bg-slate-950/80', 'cursor-not-allowed', 'border-emerald-500/30');
+                inputC.classList.remove('bg-slate-900', 'border-emerald-500/50');
+            } else {
+                btnAC.classList.add('bg-indigo-600', 'text-white');
+                btnAC.classList.remove('text-slate-400', 'hover:text-white');
+                btnAB.classList.remove('bg-indigo-600', 'text-white');
+                btnAB.classList.add('text-slate-400', 'hover:text-white');
+
+                inputC.readOnly = false;
+                inputC.classList.remove('bg-slate-950/80', 'cursor-not-allowed', 'border-emerald-500/30');
+                inputC.classList.add('bg-slate-900', 'border-emerald-500/50');
+
+                inputB.readOnly = true;
+                inputB.classList.add('bg-slate-950/80', 'cursor-not-allowed', 'border-orange-500/30');
+                inputB.classList.remove('bg-slate-900', 'border-orange-500/50');
+            }
+            onCustomInputChange();
+        }
+
+        function fillQuickTriple(a, b, c) {
+            document.getElementById('input-a').value = a;
+            document.getElementById('input-b').value = b;
+            document.getElementById('input-c').value = c;
+            onCustomInputChange();
+        }
+
+        /**
+         * ตรวจสอบค่าที่กรอกและคำนวณด้านที่ 3 แบบเรียลไทม์
+         */
+        function validateAndComputeCustom() {
+            const formulaEl = document.getElementById('custom-formula-display');
+            const msgEl = document.getElementById('custom-validation-msg');
+            const applyBtn = document.getElementById('btn-apply-custom');
+
+            const rawA = parseFloat(document.getElementById('input-a').value);
+            const rawB = parseFloat(document.getElementById('input-b').value);
+            const rawC = parseFloat(document.getElementById('input-c').value);
+
+            const showValidation = (type, text, allowApply) => {
+                msgEl.classList.remove('hidden', 'bg-rose-950/80', 'border-rose-500/40', 'text-rose-300', 'bg-amber-950/80', 'border-amber-500/40', 'text-amber-300');
+                if (type === 'error') {
+                    msgEl.classList.add('bg-rose-950/80', 'border', 'border-rose-500/40', 'text-rose-300');
+                    msgEl.innerHTML = text;
+                } else if (type === 'warning') {
+                    msgEl.classList.add('bg-amber-950/80', 'border', 'border-amber-500/40', 'text-amber-300');
+                    msgEl.innerHTML = text;
+                } else {
+                    msgEl.classList.add('hidden');
+                }
+
+                applyBtn.disabled = !allowApply;
+                if (allowApply) {
+                    applyBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+                } else {
+                    applyBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                }
+            };
+
+            if (customInputMode === 'ab') {
+                // ตรวจสอบค่า a และ b
+                if (!Number.isInteger(rawA) || !Number.isInteger(rawB) || rawA < 1 || rawB < 1) {
+                    formulaEl.textContent = 'c = √(a² + b²)';
+                    showValidation('error', '⚠️ กรุณากรอกความยาวด้าน <b>a</b> และ <b>b</b> เป็นจำนวนเต็มบวก (1 - 15)', false);
+                    return null;
+                }
+                if (rawA > 15 || rawB > 15) {
+                    formulaEl.textContent = `c = √(${rawA}² + ${rawB}²)`;
+                    showValidation('error', '⚠️ แนะนำให้ใส่ค่าไม่เกิน <b>15</b> หน่วย เพื่อไม่ให้ช่องตาราง 1×1 เล็กเกินไปจนลากยากครับ', false);
+                    return null;
+                }
+
+                const cSq = rawA * rawA + rawB * rawB;
+                const exactC = Math.sqrt(cSq);
+                const isPerfect = Number.isInteger(exactC);
+                const roundedC = Math.round(exactC);
+
+                document.getElementById('input-c').value = isPerfect ? exactC : exactC.toFixed(2);
+
+                if (isPerfect) {
+                    formulaEl.innerHTML = `c = √(${rawA}² + ${rawB}²) = √${cSq} = <span class="text-white underline">${exactC}</span>`;
+                    showValidation('ok', '', true);
+                    return { a: rawA, b: rawB, c: exactC };
+                } else {
+                    formulaEl.innerHTML = `c = √(${rawA}² + ${rawB}²) = √${cSq} ≈ <span class="text-amber-300">${exactC.toFixed(2)}</span>`;
+                    showValidation(
+                        'warning',
+                        `💡 <b>หมายเหตุ:</b> ด้าน c = √${cSq} (≈ ${exactC.toFixed(2)}) เป็นจำนวนอตรรกยะ ทำให้ตาราง 1×1 หน่วยบน c² หารไม่ลงตัว แนะนำให้ใช้ชุดเลขลงตัว (Pythagorean Triples) เช่น <b>3-4-5, 5-12-13, 6-8-10, 8-15-17, 9-12-15</b> เพื่อให้วางบล็อก 1×1 ได้เต็มกรอบพอดีครับ`,
+                        false
+                    );
+                    return null;
+                }
+            } else {
+                // โหมดกรอก a และ c เพื่อคำนวณหา b
+                if (!Number.isInteger(rawA) || !Number.isInteger(rawC) || rawA < 1 || rawC < 2) {
+                    formulaEl.textContent = 'b = √(c² - a²)';
+                    showValidation('error', '⚠️ กรุณากรอกความยาวด้าน <b>a</b> และ <b>c</b> เป็นจำนวนเต็มบวก', false);
+                    return null;
+                }
+                if (rawC <= rawA) {
+                    formulaEl.textContent = 'b = √(c² - a²)';
+                    showValidation('error', '⚠️ ด้านตรงข้ามมุมฉาก (<b>c</b>) ต้องยาวกว่าด้านประกอบมุมฉาก (<b>a</b>) เสมอ (c > a)', false);
+                    return null;
+                }
+                if (rawA > 15 || rawC > 20) {
+                    formulaEl.textContent = `b = √(${rawC}² - ${rawA}²)`;
+                    showValidation('error', '⚠️ กรุณากรอกค่า <b>a ≤ 15</b> และ <b>c ≤ 20</b> เพื่อความชัดเจนของตาราง 1×1 หน่วย', false);
+                    return null;
+                }
+
+                const bSq = rawC * rawC - rawA * rawA;
+                const exactB = Math.sqrt(bSq);
+                const isPerfect = Number.isInteger(exactB);
+
+                document.getElementById('input-b').value = isPerfect ? exactB : exactB.toFixed(2);
+
+                if (isPerfect) {
+                    if (exactB > 15) {
+                        formulaEl.innerHTML = `b = √(${rawC}² - ${rawA}²) = √${bSq} = ${exactB}`;
+                        showValidation('error', `⚠️ ค่าด้าน b ที่ได้คือ <b>${exactB}</b> ซึ่งใหญ่เกินไปสำหรับตาราง 1×1 (แนะนำ b ≤ 15)`, false);
+                        return null;
+                    }
+                    formulaEl.innerHTML = `b = √(${rawC}² - ${rawA}²) = √${bSq} = <span class="text-white underline">${exactB}</span>`;
+                    showValidation('ok', '', true);
+                    return { a: rawA, b: exactB, c: rawC };
+                } else {
+                    formulaEl.innerHTML = `b = √(${rawC}² - ${rawA}²) = √${bSq} ≈ <span class="text-amber-300">${exactB.toFixed(2)}</span>`;
+                    showValidation(
+                        'warning',
+                        `💡 <b>หมายเหตุ:</b> ด้าน b = √${bSq} (≈ ${exactB.toFixed(2)}) เป็นจำนวนอตรรกยะ ทำให้ตาราง 1×1 หน่วยหารไม่ลงตัว แนะนำให้ใช้ชุดเลขลงตัว เช่น <b>a=3, c=5</b> หรือ <b>a=5, c=13</b> หรือ <b>a=8, c=17</b> ครับ`,
+                        false
+                    );
+                    return null;
+                }
+            }
+        }
+
+        function onCustomInputChange() {
+            validateAndComputeCustom();
+        }
+
+        function applyCustomTriangle() {
+            const result = validateAndComputeCustom();
+            if (!result) return;
+
+            activeTriangle = { a: result.a, b: result.b, c: result.c, isCustom: true };
+            updateNavActiveButton('btn-lvl-custom');
+            toggleCustomPanel(false);
+            sound.playPickup();
+            initLevelData();
+        }
+
+        function toggleGrid() {
+            showGrid = !showGrid;
+            const btn = document.getElementById('btn-grid');
+            if (showGrid) {
+                btn.classList.add('text-sky-400', 'border-slate-700');
+                btn.classList.remove('text-slate-500', 'border-slate-800');
+            } else {
+                btn.classList.remove('text-sky-400', 'border-slate-700');
+                btn.classList.add('text-slate-500', 'border-slate-800');
+            }
+        }
+
+        function toggleSound() {
+            sound.enabled = !sound.enabled;
+            document.getElementById('icon-sound-on').classList.toggle('hidden', !sound.enabled);
+            document.getElementById('icon-sound-off').classList.toggle('hidden', sound.enabled);
+            if (sound.enabled) sound.playPickup();
+        }
+
+        /**
+         * ============================================================================
+         * ระบบอนุภาค (Visual Particles) และ การวาดกราฟิกบน Canvas (Rendering Loop)
+         * ============================================================================
+         */
+        function spawnSnapParticles(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+                const speed = 1.5 + Math.random() * 2.5;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    color: color,
+                    size: 2.5 + Math.random() * 2.5
+                });
+            }
+        }
+
+        function updateAnimations() {
+            // อัปเดตการเคลื่อนที่แบบ Smooth Easing ของชิ้นส่วน
+            tiles.forEach(tile => {
+                if (tile.isAnimating) {
+                    tile.animProgress += 0.14;
+                    if (tile.animProgress >= 1) {
+                        tile.animProgress = 1;
+                        tile.isAnimating = false;
+                    }
+                    // Ease-out Cubic
+                    const t = 1 - Math.pow(1 - tile.animProgress, 3);
+                    tile.x = tile.animStart.x + (tile.animEnd.x - tile.animStart.x) * t;
+                    tile.y = tile.animStart.y + (tile.animEnd.y - tile.animStart.y) * t;
+                    tile.angle = tile.animStart.angle + (tile.animEnd.angle - tile.animStart.angle) * t;
+                }
+            });
+
+            // อัปเดตอนุภาค
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.04;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            const u = geom.unitSize;
+            const { a, b, c } = activeTriangle;
+
+            // 1. วาดกรอบฐานของพื้นที่ a² (ด้านซ้าย - สีฟ้าจาง)
+            drawBaseSquare(geom.A.x - a * u, geom.B.y, a, u, 0, 'rgba(14, 165, 233, 0.08)', 'rgba(56, 189, 248, 0.45)');
+
+            // 2. วาดกรอบฐานของพื้นที่ b² (ด้านล่าง - สีส้มจาง)
+            drawBaseSquare(geom.A.x, geom.A.y, b, u, 0, 'rgba(249, 115, 22, 0.08)', 'rgba(251, 146, 60, 0.45)');
+
+            // 3. วาดกรอบเป้าหมาย c² (ด้านตรงข้ามมุมฉาก - สีเขียวมรกต)
+            drawTargetAreaC(c, u);
+
+            // 4. วาดรูปสามเหลี่ยมมุมฉากตรงกลาง (หัวใจหลักของภาพ)
+            drawRightTriangle(a, b, c, u);
+
+            // 5. วาดชิ้นส่วนสี่เหลี่ยม 1x1 หน่วยทั้งหมด (วางปกติก่อน แล้ววาดตัวที่กำลังลากไว้บนสุด)
+            tiles.forEach(tile => {
+                if (tile !== draggedTile) {
+                    drawUnitTile(tile, u, false);
+                }
+            });
+
+            if (draggedTile) {
+                drawUnitTile(draggedTile, u, true);
+            }
+
+            // 6. วาดเอฟเฟกต์อนุภาค
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        // วาดกรอบฐาน a² และ b² พร้อมเส้นตารางด้านหลัง
+        function drawBaseSquare(startX, startY, count, u, angle, fillColor, strokeColor) {
+            ctx.save();
+            ctx.translate(startX, startY);
+            ctx.rotate(angle);
+
+            const size = count * u;
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(0, 0, size, size);
+
+            if (showGrid) {
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+                ctx.lineWidth = 1;
+                for (let i = 1; i < count; i++) {
+                    // เส้นตั้ง
+                    ctx.beginPath();
+                    ctx.moveTo(i * u, 0);
+                    ctx.lineTo(i * u, size);
+                    ctx.stroke();
+                    // เส้นนอน
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * u);
+                    ctx.lineTo(size, i * u);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, size, size);
+            ctx.restore();
+        }
+
+        // วาดกรอบเป้าหมาย c² และช่องตารางย่อยสำหรับรับชิ้นส่วน
+        function drawTargetAreaC(c, u) {
+            ctx.save();
+            ctx.translate(geom.B.x, geom.B.y);
+            ctx.rotate(geom.angleC);
+
+            const size = c * u;
+            // วาดยื่นขึ้นไปด้านบน (-size) ในระบบพิกัดท้องถิ่นของด้าน BC
+            ctx.fillStyle = hasWon ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.06)';
+            ctx.fillRect(0, -size, size, size);
+
+            if (showGrid) {
+                ctx.strokeStyle = 'rgba(52, 211, 153, 0.25)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                for (let i = 1; i < c; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(i * u, -size);
+                    ctx.lineTo(i * u, 0);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(0, -i * u);
+                    ctx.lineTo(size, -i * u);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+            }
+
+            // เส้นขอบนอกของ c²
+            ctx.strokeStyle = hasWon ? '#34d399' : 'rgba(52, 211, 153, 0.65)';
+            ctx.lineWidth = hasWon ? 3 : 2;
+            ctx.strokeRect(0, -size, size, size);
+            ctx.restore();
+
+            // ไฮไลต์ช่องที่กำลังจะวางลงล็อก (Snap Target Highlight)
+            if (hoveredSlot) {
+                ctx.save();
+                ctx.translate(hoveredSlot.x, hoveredSlot.y);
+                ctx.rotate(hoveredSlot.angle);
+                const inset = Math.max(1.5, u * 0.06);
+                const tileSize = u - inset * 2;
+                ctx.fillStyle = 'rgba(52, 211, 153, 0.35)';
+                ctx.strokeStyle = '#6ee7b7';
+                ctx.lineWidth = 2;
+                roundRect(ctx, -tileSize / 2, -tileSize / 2, tileSize, tileSize, Math.min(6, u * 0.15));
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // ป้ายกำกับ c² ตรงกลางกรอบหากยังว่างอยู่
+            const placedCount = targetSlots.filter(s => s.occupiedByTileId !== -1).length;
+            if (placedCount === 0) {
+                const centerSlotX = geom.B.x + (c * 0.5) * geom.cosC * u + (c * 0.5) * geom.sinC * u;
+                const centerSlotY = geom.B.y + (c * 0.5) * geom.sinC * u - (c * 0.5) * geom.cosC * u;
+                ctx.save();
+                ctx.translate(centerSlotX, centerSlotY);
+                ctx.rotate(geom.angleC);
+                ctx.fillStyle = 'rgba(52, 211, 153, 0.35)';
+                ctx.font = `700 ${Math.max(14, u * 0.7)}px "JetBrains Mono", monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`c² = ${c * c}`, 0, 0);
+                ctx.restore();
+            }
+        }
+
+        // วาดรูปสามเหลี่ยมมุมฉากตรงกลาง พร้อมสัญลักษณ์มุมฉากและป้ายบอกความยาวด้าน a, b, c
+        function drawRightTriangle(a, b, c, u) {
+            ctx.save();
+
+            // พื้นหลังสามเหลี่ยม
+            const grad = ctx.createLinearGradient(geom.B.x, geom.B.y, geom.C.x, geom.C.y);
+            grad.addColorStop(0, 'rgba(30, 41, 59, 0.95)');
+            grad.addColorStop(1, 'rgba(15, 23, 42, 0.95)');
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(geom.A.x, geom.A.y);
+            ctx.lineTo(geom.B.x, geom.B.y);
+            ctx.lineTo(geom.C.x, geom.C.y);
+            ctx.closePath();
+            ctx.fill();
+
+            // เส้นขอบสามเหลี่ยม
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // สัญลักษณ์มุมฉากที่จุด A
+            const sqSize = Math.min(18, u * 0.45);
+            ctx.strokeStyle = '#f43f5e'; // สีแดงชมพูเด่นชัดสำหรับมุมฉาก 90°
+            ctx.lineWidth = 2;
+            ctx.strokeRect(geom.A.x, geom.A.y - sqSize, sqSize, sqSize);
+
+            // ป้ายข้อความบอกความยาวด้าน a, b, c ภายในสามเหลี่ยม
+            const fontSize = Math.max(11, Math.min(18, u * 0.42));
+            ctx.font = `700 ${fontSize}px "Prompt", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // ป้ายด้าน a (แนวตั้งซ้าย)
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillText(`a=${a}`, geom.A.x + fontSize * 1.15, (geom.A.y + geom.B.y) / 2);
+
+            // ป้ายด้าน b (แนวนอนล่าง)
+            ctx.fillStyle = '#fb923c';
+            ctx.fillText(`b=${b}`, (geom.A.x + geom.C.x) / 2, geom.A.y - fontSize * 0.85);
+
+            // ป้ายด้าน c (ด้านเอียง)
+            const midCX = (geom.B.x + geom.C.x) / 2 - geom.sinC * (fontSize * 0.95);
+            const midCY = (geom.B.y + geom.C.y) / 2 + geom.cosC * (fontSize * 0.95);
+            ctx.save();
+            ctx.translate(midCX, midCY);
+            ctx.rotate(geom.angleC);
+            ctx.fillStyle = '#34d399';
+            ctx.fillText(`c=${c}`, 0, 0);
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // วาดชิ้นส่วนสี่เหลี่ยมจัตุรัส 1x1 หน่วยแต่ละชิ้น
+        function drawUnitTile(tile, u, isDragged) {
+            ctx.save();
+            ctx.translate(tile.x, tile.y);
+            ctx.rotate(tile.angle);
+
+            const scale = isDragged ? 1.12 : 1.0;
+            ctx.scale(scale, scale);
+
+            const gap = showGrid ? Math.max(1.2, u * 0.05) : 0.4;
+            const size = u - gap * 2;
+            const radius = showGrid ? Math.min(6, u * 0.16) : 1;
+
+            // เงาเมื่อกำลังลาก
+            if (isDragged) {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+                ctx.shadowBlur = 14;
+                ctx.shadowOffsetY = 6;
+            }
+
+            // สี Gradient ตามประเภท (a = ฟ้า, b = ส้ม)
+            const grad = ctx.createLinearGradient(-size / 2, -size / 2, size / 2, size / 2);
+            if (tile.type === 'a') {
+                grad.addColorStop(0, '#38bdf8'); // Sky 400
+                grad.addColorStop(1, '#0284c7'); // Sky 600
+            } else {
+                grad.addColorStop(0, '#fb923c'); // Orange 400
+                grad.addColorStop(1, '#ea580c'); // Orange 600
+            }
+
+            ctx.fillStyle = grad;
+            roundRect(ctx, -size / 2, -size / 2, size, size, radius);
+            ctx.fill();
+
+            // เส้นขอบไฮไลต์ด้านบนให้ดูมีมิติแบบปุ่มนูน (Bevel)
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = tile.type === 'a' ? 'rgba(186, 230, 253, 0.65)' : 'rgba(254, 215, 170, 0.65)';
+            ctx.lineWidth = showGrid ? 1.2 : 0.5;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // ฟังก์ชันวาดสี่เหลี่ยมมุมมนบน Canvas
+        function roundRect(ctx, x, y, width, height, radius) {
+            if (width < 2 * radius) radius = width / 2;
+            if (height < 2 * radius) radius = height / 2;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+        }
+
+        /**
+         * ============================================================================
+         * ลูปหลักและจัดการการปรับขนาดหน้าจอ (Main Loop & Responsive Resize)
+         * ============================================================================
+         */
+        function handleResize() {
+            const rect = container.getBoundingClientRect();
+            width = rect.width;
+            height = rect.height;
+            dpr = window.devicePixelRatio || 1;
+
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            calculateGeometry();
+        }
+
+        function animateLoop() {
+            updateAnimations();
+            draw();
+            requestAnimationFrame(animateLoop);
+        }
+
+        // ลงทะเบียน Event Listeners สำหรับ Mouse และ Touch Screen
+        canvas.addEventListener('mousedown', handlePointerDown);
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+        window.addEventListener('touchmove', handlePointerMove, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+
+        window.addEventListener('resize', handleResize);
+
+        // เริ่มต้นทำงานเมื่อโหลดหน้าเว็บเสร็จสมบูรณ์
+        window.onload = function () {
+            handleResize();
+            initLevelData();
+            animateLoop();
+        };
+    </script>
+</body>
+</html>
